@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basit Ses Uygulaması</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .control-group {
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h2 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        select, input[type="range"], input[type="text"], input[type="file"] {
+            padding: 8px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .status {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .active {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        .recording {
+            background-color: #fff3e0;
+            color: #e65100;
+        }
+        .meter-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .meter {
+            flex-grow: 1;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+        .meter-fill {
+            height: 100%;
+            background-color: #4CAF50;
+            width: 0%;
+            transition: width 0.1s;
+        }
+        .meter-value {
+            min-width: 40px;
+            text-align: center;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>Basit Ses Uygulaması</h1>
+    
+    <div class="container">
+        <div class="control-group">
+            <h2>Cihaz Ayarları</h2>
+            
+            <div class="meter-container">
+                <label for="inputDevice">Giriş Cihazı:</label>
+                <select id="inputDevice"></select>
+            </div>
+            
+            <div class="meter-container">
+                <label for="outputDevice">Çıkış Cihazı:</label>
+                <select id="outputDevice"></select>
+            </div>
+            
+            <button id="refreshDevices">Cihazları Yenile</button>
+        </div>
+        
+        <div class="control-group">
+            <h2>Mikrofon</h2>
+            
+            <div class="meter-container">
+                <div class="meter">
+                    <div class="meter-fill" id="inputMeter"></div>
+                </div>
+                <div class="meter-value" id="inputValue">0 dB</div>
+            </div>
+            
+            <button id="startMic">Mikrofonu Aç</button>
+            <button id="stopMic" disabled>Mikrofonu Kapat</button>
+            
+            <div class="meter-container">
+                <label for="inputGain">Giriş Seviyesi:</label>
+                <input type="range" id="inputGain" min="0" max="2" step="0.01" value="1">
+            </div>
+            
+            <div id="micStatus" class="status">Mikrofon kapalı</div>
+        </div>
+        
+        <div class="control-group">
+            <h2>Dosyadan Çal</h2>
+            
+            <div class="meter-container">
+                <div class="meter">
+                    <div class="meter-fill" id="fileMeter"></div>
+                </div>
+                <div class="meter-value" id="fileValue">0 dB</div>
+            </div>
+            
+            <input type="file" id="audioFile" accept="audio/*">
+            
+            <button id="playFile" disabled>Çal</button>
+            <button id="pauseFile" disabled>Duraklat</button>
+            <button id="stopFile" disabled>Durdur</button>
+            
+            <div class="meter-container">
+                <label for="fileGain">Çıkış Seviyesi:</label>
+                <input type="range" id="fileGain" min="0" max="2" step="0.01" value="1">
+            </div>
+            
+            <div id="fileStatus" class="status">Dosya seçilmedi</div>
+        </div>
+        
+        <div class="control-group">
+            <h2>URL'den Çal</h2>
+            
+            <div class="meter-container">
+                <div class="meter">
+                    <div class="meter-fill" id="urlMeter"></div>
+                </div>
+                <div class="meter-value" id="urlValue">0 dB</div>
+            </div>
+            
+            <input type="text" id="audioUrl" placeholder="Ses dosyası URL'si girin (örn: https://example.com/sound.mp3)">
+            
+            <button id="playUrl">Çal</button>
+            <button id="pauseUrl" disabled>Duraklat</button>
+            <button id="stopUrl" disabled>Durdur</button>
+            
+            <div class="meter-container">
+                <label for="urlGain">Çıkış Seviyesi:</label>
+                <input type="range" id="urlGain" min="0" max="2" step="0.01" value="1">
+            </div>
+            
+            <div id="urlStatus" class="status">URL girilmedi</div>
+        </div>
+        
+        <div class="control-group">
+            <h2>Ses Kayıt</h2>
+            
+            <div class="meter-container">
+                <div class="meter">
+                    <div class="meter-fill" id="recordMeter"></div>
+                </div>
+                <div class="meter-value" id="recordValue">0 dB</div>
+            </div>
+            
+            <button id="startRecord">Kaydı Başlat</button>
+            <button id="stopRecord" disabled>Kaydı Durdur</button>
+            <button id="playRecorded" disabled>Kaydı Oynat</button>
+            <button id="saveRecorded" disabled>Kaydı İndir</button>
+            
+            <div class="meter-container">
+                <label for="recordGain">Kayıt Seviyesi:</label>
+                <input type="range" id="recordGain" min="0" max="2" step="0.01" value="1">
+            </div>
+            
+            <div id="recordStatus" class="status">Kayıt hazır</div>
+        </div>
+    </div>
+
+    <script>
+        // Audio context ve global değişkenler
+        let audioContext;
+        let micStream;
+        let micSource;
+        let fileSource;
+        let urlSource;
+        let recordedAudio;
+        let mediaRecorder;
+        let audioChunks = [];
+        let destination;
+        let analyserNodes = {};
+        let meterNodes = {};
+        let gainNodes = {};
+        let recorderDest;
+        let isRecording = false;
+        
+        // UI elements
+        const inputDeviceSelect = document.getElementById('inputDevice');
+        const outputDeviceSelect = document.getElementById('outputDevice');
+        const refreshDevicesBtn = document.getElementById('refreshDevices');
+        
+        // Mikrofon elementleri
+        const startMicBtn = document.getElementById('startMic');
+        const stopMicBtn = document.getElementById('stopMic');
+        const micStatus = document.getElementById('micStatus');
+        const inputGain = document.getElementById('inputGain');
+        const inputMeter = document.getElementById('inputMeter');
+        const inputValue = document.getElementById('inputValue');
+        
+        // Dosya elementleri
+        const audioFileInput = document.getElementById('audioFile');
+        const playFileBtn = document.getElementById('playFile');
+        const pauseFileBtn = document.getElementById('pauseFile');
+        const stopFileBtn = document.getElementById('stopFile');
+        const fileStatus = document.getElementById('fileStatus');
+        const fileGain = document.getElementById('fileGain');
+        const fileMeter = document.getElementById('fileMeter');
+        const fileValue = document.getElementById('fileValue');
+        
+        // URL elementleri
+        const audioUrlInput = document.getElementById('audioUrl');
+        const playUrlBtn = document.getElementById('playUrl');
+        const pauseUrlBtn = document.getElementById('pauseUrl');
+        const stopUrlBtn = document.getElementById('stopUrl');
+        const urlStatus = document.getElementById('urlStatus');
+        const urlGain = document.getElementById('urlGain');
+        const urlMeter = document.getElementById('urlMeter');
+        const urlValue = document.getElementById('urlValue');
+        
+        // Kayıt elementleri
+        const startRecordBtn = document.getElementById('startRecord');
+        const stopRecordBtn = document.getElementById('stopRecord');
+        const playRecordedBtn = document.getElementById('playRecorded');
+        const saveRecordedBtn = document.getElementById('saveRecorded');
+        const recordStatus = document.getElementById('recordStatus');
+        const recordGain = document.getElementById('recordGain');
+        const recordMeter = document.getElementById('recordMeter');
+        const recordValue = document.getElementById('recordValue');
+        
+        // Audio context başlatma
+        function initAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                destination = audioContext.destination;
+                
+                // Analyser ve meter'ları başlat
+                initAnalysers();
+                
+                // Gain düğümlerini oluştur
+                gainNodes = {
+                    mic: audioContext.createGain(),
+                    file: audioContext.createGain(),
+                    url: audioContext.createGain(),
+                    record: audioContext.createGain()
+                };
+                
+                // Kayıt için hedef düğüm
+                recorderDest = audioContext.createMediaStreamDestination();
+                
+                // Bağlantıları yap
+                Object.keys(gainNodes).forEach(key => {
+                    gainNodes[key].connect(analyserNodes[key]);
+                    analyserNodes[key].connect(destination);
+                });
+                
+                // Mikrofon için kayıt bağlantısı
+                gainNodes.mic.connect(recorderDest);
+            }
+        }
+        
+        // Analyser'ları başlat
+        function initAnalysers() {
+            analyserNodes = {
+                mic: audioContext.createAnalyser(),
+                file: audioContext.createAnalyser(),
+                url: audioContext.createAnalyser(),
+                record: audioContext.createAnalyser()
+            };
+            
+            meterNodes = {
+                mic: createMeterNode(),
+                file: createMeterNode(),
+                url: createMeterNode(),
+                record: createMeterNode()
+            };
+            
+            // Analyser ayarları
+            Object.values(analyserNodes).forEach(analyser => {
+                analyser.fftSize = 256;
+            });
+            
+            // Seviye göstergelerini güncelle
+            requestAnimationFrame(updateMeters);
+        }
+        
+        // Ses seviye metre düğümü oluştur
+        function createMeterNode() {
+            const meter = audioContext.createScriptProcessor(2048, 1, 1);
+            meter.onaudioprocess = function(e) {
+                const input = e.inputBuffer.getChannelData(0);
+                let sum = 0.0;
+                
+                for (let i = 0; i < input.length; i++) {
+                    sum += input[i] * input[i];
+                }
+                
+                const rms = Math.sqrt(sum / input.length);
+                const db = 20 * Math.log10(rms);
+                meter.dbValue = isFinite(db) ? db : -100;
+            };
+            
+            return meter;
+        }
+        
+        // Seviye göstergelerini güncelle
+        function updateMeters() {
+            const meters = {
+                mic: { element: inputMeter, value: inputValue, node: meterNodes.mic },
+                file: { element: fileMeter, value: fileValue, node: meterNodes.file },
+                url: { element: urlMeter, value: urlValue, node: meterNodes.url },
+                record: { element: recordMeter, value: recordValue, node: meterNodes.record }
+            };
+            
+            Object.keys(meters).forEach(key => {
+                const meter = meters[key];
+                const db = meter.node.dbValue || -100;
+                const percent = Math.min(100, Math.max(0, (db + 60) * (100 / 60))); // -60dB to 0dB aralığı
+                
+                meter.element.style.width = `${percent}%`;
+                meter.value.textContent = `${db.toFixed(1)} dB`;
+                
+                // Renk değişimi (kırmızı - sarı - yeşil)
+                if (db > -6) {
+                    meter.element.style.backgroundColor = '#f44336'; // Kırmızı
+                } else if (db > -12) {
+                    meter.element.style.backgroundColor = '#ff9800'; // Turuncu
+                } else {
+                    meter.element.style.backgroundColor = '#4CAF50'; // Yeşil
+                }
+            });
+            
+            requestAnimationFrame(updateMeters);
+        }
+        
+        // Ses cihazlarını listele
+        async function getAudioDevices() {
+            try {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+                    throw new Error('Tarayıcınız cihaz listeleme özelliğini desteklemiyor');
+                }
+                
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const inputDevices = devices.filter(device => device.kind === 'audioinput');
+                const outputDevices = devices.filter(device => device.kind === 'audiooutput');
+                
+                // Giriş cihazlarını güncelle
+                inputDeviceSelect.innerHTML = '';
+                inputDevices.forEach(device => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.text = device.label || `Mikrofon ${inputDeviceSelect.length + 1}`;
+                    inputDeviceSelect.appendChild(option);
+                });
+                
+                // Çıkış cihazlarını güncelle
+                outputDeviceSelect.innerHTML = '';
+                outputDevices.forEach(device => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.text = device.label || `Hoparlör ${outputDeviceSelect.length + 1}`;
+                    outputDeviceSelect.appendChild(option);
+                });
+                
+                // Varsayılan çıkış cihazını ayarla (Chrome)
+                if (outputDevices.length > 0 && 'setSinkId' in AudioContext.prototype) {
+                    audioContext.setSinkId(outputDeviceSelect.value).catch(console.error);
+                }
+            } catch (error) {
+                console.error('Cihaz listesi alınamadı:', error);
+            }
+        }
+        
+        // Mikrofonu başlat
+        async function startMicrophone() {
+            try {
+                initAudioContext();
+                
+                const constraints = {
+                    audio: {
+                        deviceId: inputDeviceSelect.value ? { exact: inputDeviceSelect.value } : undefined,
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    }
+                };
+                
+                micStream = await navigator.mediaDevices.getUserMedia(constraints);
+                micSource = audioContext.createMediaStreamSource(micStream);
+                
+                // Mikrofon kaynağını bağla
+                micSource.connect(gainNodes.mic);
+                gainNodes.mic.gain.value = inputGain.value;
+                
+                // Seviye metreyi bağla
+                gainNodes.mic.connect(meterNodes.mic);
+                
+                startMicBtn.disabled = true;
+                stopMicBtn.disabled = false;
+                micStatus.textContent = 'Mikrofon açık - ses seviyesi: ' + inputGain.value;
+                micStatus.className = 'status active';
+                
+                // Kayıt için hazırlık
+                if (isRecording) {
+                    micSource.connect(recorderDest);
+                }
+            } catch (error) {
+                console.error('Mikrofon açılamadı:', error);
+                micStatus.textContent = `Hata: ${error.message}`;
+                micStatus.className = 'status error';
+            }
+        }
+        
+        // Mikrofonu kapat
+        function stopMicrophone() {
+            if (micStream) {
+                micStream.getTracks().forEach(track => track.stop());
+            }
+            if (micSource) {
+                micSource.disconnect();
+            }
+            
+            startMicBtn.disabled = false;
+            stopMicBtn.disabled = true;
+            micStatus.textContent = 'Mikrofon kapalı';
+            micStatus.className = 'status';
+        }
+        
+        // Dosyadan ses çal
+        function playAudioFile() {
+            const file = audioFileInput.files[0];
+            if (!file) return;
+            
+            initAudioContext();
+            
+            const fileReader = new FileReader();
+            fileReader.onload = function(e) {
+                audioContext.decodeAudioData(e.target.result)
+                    .then(buffer => {
+                        if (fileSource) {
+                            fileSource.stop();
+                        }
+                        
+                        fileSource = audioContext.createBufferSource();
+                        fileSource.buffer = buffer;
+                        
+                        // Dosya kaynağını bağla
+                        fileSource.connect(gainNodes.file);
+                        gainNodes.file.gain.value = fileGain.value;
+                        
+                        // Seviye metreyi bağla
+                        gainNodes.file.connect(meterNodes.file);
+                        
+                        fileSource.start(0);
+                        
+                        playFileBtn.disabled = true;
+                        pauseFileBtn.disabled = false;
+                        stopFileBtn.disabled = false;
+                        fileStatus.textContent = `Çalınıyor: ${file.name}`;
+                        fileStatus.className = 'status active';
+                        
+                        fileSource.onended = function() {
+                            playFileBtn.disabled = false;
+                            pauseFileBtn.disabled = true;
+                            stopFileBtn.disabled = true;
+                            fileStatus.textContent = 'Çalma tamamlandı';
+                            fileStatus.className = 'status';
+                        };
+                    })
+                    .catch(error => {
+                        console.error('Ses dosyası decode edilemedi:', error);
+                        fileStatus.textContent = `Hata: ${error.message}`;
+                        fileStatus.className = 'status error';
+                    });
+            };
+            fileReader.readAsArrayBuffer(file);
+        }
+        
+        // Dosyayı duraklat
+        function pauseAudioFile() {
+            if (fileSource) {
+                // Web Audio API'de duraklatma yok, bu yüzden durdurup tekrar başlatacağız
+                fileSource.stop();
+                fileSource = null;
+                
+                playFileBtn.disabled = false;
+                pauseFileBtn.disabled = true;
+                fileStatus.textContent = 'Duraklatıldı';
+                fileStatus.className = 'status';
+            }
+        }
+        
+        // Dosyayı durdur
+        function stopAudioFile() {
+            if (fileSource) {
+                fileSource.stop();
+                fileSource = null;
+            }
+            
+            playFileBtn.disabled = false;
+            pauseFileBtn.disabled = true;
+            stopFileBtn.disabled = true;
+            fileStatus.textContent = 'Durduruldu';
+            fileStatus.className = 'status';
+        }
+        
+        // URL'den ses çal
+        function playAudioFromUrl() {
+            const url = audioUrlInput.value.trim();
+            if (!url) return;
+            
+            initAudioContext();
+            
+            if (urlSource) {
+                urlSource.pause();
+                urlSource = null;
+            }
+            
+            urlSource = new Audio(url);
+            urlSource.crossOrigin = 'anonymous';
+            
+            const source = audioContext.createMediaElementSource(urlSource);
+            
+            // URL kaynağını bağla
+            source.connect(gainNodes.url);
+            gainNodes.url.gain.value = urlGain.value;
+            
+            // Seviye metreyi bağla
+            gainNodes.url.connect(meterNodes.url);
+            
+            urlSource.play().then(() => {
+                playUrlBtn.disabled = true;
+                pauseUrlBtn.disabled = false;
+                stopUrlBtn.disabled = false;
+                urlStatus.textContent = `Çalınıyor: ${url}`;
+                urlStatus.className = 'status active';
+            }).catch(error => {
+                console.error('URL çalınamadı:', error);
+                urlStatus.textContent = `Hata: ${error.message}`;
+                urlStatus.className = 'status error';
+            });
+            
+            urlSource.onended = function() {
+                playUrlBtn.disabled = false;
+                pauseUrlBtn.disabled = true;
+                stopUrlBtn.disabled = true;
+                urlStatus.textContent = 'Çalma tamamlandı';
+                urlStatus.className = 'status';
+            };
+        }
+        
+        // URL'yi duraklat
+        function pauseAudioFromUrl() {
+            if (urlSource) {
+                urlSource.pause();
+                playUrlBtn.disabled = false;
+                pauseUrlBtn.disabled = true;
+                urlStatus.textContent = 'Duraklatıldı';
+                urlStatus.className = 'status';
+            }
+        }
+        
+        // URL'yi durdur
+        function stopAudioFromUrl() {
+            if (urlSource) {
+                urlSource.pause();
+                urlSource.currentTime = 0;
+                urlSource = null;
+            }
+            
+            playUrlBtn.disabled = false;
+            pauseUrlBtn.disabled = true;
+            stopUrlBtn.disabled = true;
+            urlStatus.textContent = 'Durduruldu';
+            urlStatus.className = 'status';
+        }
+        
+        // Kaydı başlat
+        async function startRecording() {
+            try {
+                initAudioContext();
+                
+                if (!micSource) {
+                    await startMicrophone();
+                }
+                
+                audioChunks = [];
+                const options = { mimeType: 'audio/webm' };
+                mediaRecorder = new MediaRecorder(recorderDest.stream, options);
+                
+                mediaRecorder.ondataavailable = function(e) {
+                    if (e.data.size > 0) {
+                        audioChunks.push(e.data);
+                    }
+                };
+                
+                mediaRecorder.onstop = function() {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    recordedAudio = URL.createObjectURL(audioBlob);
+                    
+                    playRecordedBtn.disabled = false;
+                    saveRecordedBtn.disabled = false;
+                    recordStatus.textContent = 'Kayıt tamamlandı';
+                    recordStatus.className = 'status';
+                };
+                
+                mediaRecorder.start(100); // Her 100ms'de bir veri topla
+                isRecording = true;
+                
+                startRecordBtn.disabled = true;
+                stopRecordBtn.disabled = false;
+                recordStatus.textContent = 'Kayıt devam ediyor...';
+                recordStatus.className = 'status recording';
+            } catch (error) {
+                console.error('Kayıt başlatılamadı:', error);
+                recordStatus.textContent = `Hata: ${error.message}`;
+                recordStatus.className = 'status error';
+            }
+        }
+        
+        // Kaydı durdur
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                isRecording = false;
+                
+                startRecordBtn.disabled = false;
+                stopRecordBtn.disabled = true;
+            }
+        }
+        
+        // Kaydedileni çal
+        function playRecorded() {
+            if (!recordedAudio) return;
+            
+            initAudioContext();
+            
+            if (urlSource) {
+                urlSource.pause();
+                urlSource = null;
+            }
+            
+            urlSource = new Audio(recordedAudio);
+            const source = audioContext.createMediaElementSource(urlSource);
+            
+            // Kaydedileni bağla
+            source.connect(gainNodes.record);
+            gainNodes.record.gain.value = recordGain.value;
+            
+            // Seviye metreyi bağla
+            gainNodes.record.connect(meterNodes.record);
+            
+            urlSource.play().then(() => {
+                playRecordedBtn.disabled = true;
+                recordStatus.textContent = 'Kayıt çalınıyor...';
+                recordStatus.className = 'status active';
+            }).catch(error => {
+                console.error('Kayıt çalınamadı:', error);
+                recordStatus.textContent = `Hata: ${error.message}`;
+                recordStatus.className = 'status error';
+            });
+            
+            urlSource.onended = function() {
+                playRecordedBtn.disabled = false;
+                recordStatus.textContent = 'Kayıt çalma tamamlandı';
+                recordStatus.className = 'status';
+            };
+        }
+        
+        // Kaydedileni indir
+        function saveRecorded() {
+            if (!recordedAudio) return;
+            
+            const a = document.createElement('a');
+            a.href = recordedAudio;
+            a.download = 'kayit.webm';
+            
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            recordStatus.textContent = 'Kayıt indiriliyor...';
+            recordStatus.className = 'status active';
+            setTimeout(() => {
+                recordStatus.textContent = 'Kayıt indirildi';
+                recordStatus.className = 'status';
+            }, 1000);
+        }
+        
+        // Event listeners
+        startMicBtn.addEventListener('click', startMicrophone);
+        stopMicBtn.addEventListener('click', stopMicrophone);
+        
+        audioFileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                playFileBtn.disabled = false;
+                fileStatus.textContent = `Seçilen dosya: ${this.files[0].name}`;
+                fileStatus.className = 'status';
+            } else {
+                playFileBtn.disabled = true;
+                fileStatus.textContent = 'Dosya seçilmedi';
+                fileStatus.className = 'status';
+            }
+        });
+        
+        playFileBtn.addEventListener('click', playAudioFile);
+        pauseFileBtn.addEventListener('click', pauseAudioFile);
+        stopFileBtn.addEventListener('click', stopAudioFile);
+        
+        playUrlBtn.addEventListener('click', playAudioFromUrl);
+        pauseUrlBtn.addEventListener('click', pauseAudioFromUrl);
+        stopUrlBtn.addEventListener('click', stopAudioFromUrl);
+        
+        startRecordBtn.addEventListener('click', startRecording);
+        stopRecordBtn.addEventListener('click', stopRecording);
+        playRecordedBtn.addEventListener('click', playRecorded);
+        saveRecordedBtn.addEventListener('click', saveRecorded);
+        
+        refreshDevicesBtn.addEventListener('click', getAudioDevices);
+        
+        // Gain ayarları
+        inputGain.addEventListener('input', function() {
+            if (gainNodes.mic) {
+                gainNodes.mic.gain.value = this.value;
+                micStatus.textContent = `Mikrofon açık - ses seviyesi: ${this.value}`;
+            }
+        });
+        
+        fileGain.addEventListener('input', function() {
+            if (gainNodes.file) {
+                gainNodes.file.gain.value = this.value;
+            }
+        });
+        
+        urlGain.addEventListener('input', function() {
+            if (gainNodes.url) {
+                gainNodes.url.gain.value = this.value;
+            }
+        });
+        
+        recordGain.addEventListener('input', function() {
+            if (gainNodes.record) {
+                gainNodes.record.gain.value = this.value;
+            }
+        });
+        
+        // Çıkış cihazı değişimi (Chrome)
+        outputDeviceSelect.addEventListener('change', function() {
+            if (audioContext && 'setSinkId' in AudioContext.prototype) {
+                audioContext.setSinkId(this.value).catch(error => {
+                    console.error('Çıkış cihazı değiştirilemedi:', error);
+                });
+            }
+        });
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Request microphone permission to get device labels
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    stream.getTracks().forEach(track => track.stop());
+                    getAudioDevices();
+                })
+                .catch(error => {
+                    console.error('Mikrofon izni alınamadı:', error);
+                    getAudioDevices(); // Still try to get devices without labels
+                });
+        });
+    </script>
+</body>
+</html>
